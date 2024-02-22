@@ -1,0 +1,7 @@
+cache/
+tmp/
+*ociarchive
+*qcow2
+*raw
+*vhdx
+*tar.gz
