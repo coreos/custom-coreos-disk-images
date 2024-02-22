@@ -1,6 +1,6 @@
 # build-custom-rhcos-disks
 
-This repos contains files and instructions for building customized RHCOS
+This repo contains files and instructions for building customized RHCOS
 (Red Hat CoreOS) disk images that are used for installation and
 bootstrapping of OpenShift Clusters.
 
@@ -76,6 +76,8 @@ sudo dnf install --enablerepo=updates-testing -y osbuild osbuild-tools osbuild-o
 ```
 
 Now you should be able to generate an image with something like:
+
+```
 ociarchive=/path/to/my-custom-rhcos-415.ociarchive
 platform=qemu
 sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
@@ -84,5 +86,4 @@ sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
 Which will create the file `my-custom-rhcos-415.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
 
-NOTE: you can also pull an image from a registry into a local
-ociarchive file with `skopeo copy docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.
+NOTE: you can also pull an image from a registry into a local ociarchive file with `skopeo copy docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.
