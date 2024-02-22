@@ -51,7 +51,7 @@ RHCOS_CONTAINER='quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:....'
 podman build \
     --from $RHCOS_CONTAINER \
     --file Containerfile    \
-    --tag oci-archive:./my-custom-rhcos.ociarchive
+    --tag oci-archive:./my-custom-rhcos-415.ociarchive
 
 ```
 
@@ -63,17 +63,26 @@ Now the layered container OCI archive is in the `my-custom-rhcos.ociarchive` fil
 
 
 You can now take that ociarchive and create a disk image for a
-platform (i.e. `qemu`, `metal` or `gcp`) like so:
-
+platform (i.e. `qemu`, `metal` or `gcp`). First you need an
+environment to run OSBuild in. Right now this needs to be a
+fully up to date Fedora 39 machine with SELinux in permissive
+mode and some software installed:
 
 ```
-ociarchive=/path/to/coreos-415.ociarchive
+sudo dnf update -y
+sudo setenforce 0
+sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+sudo dnf install --enablerepo=updates-testing -y osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs
+```
+
+Now you should be able to generate an image with something like:
+ociarchive=/path/to/my-custom-rhcos-415.ociarchive
 platform=qemu
 sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
 ```
 
-Which will create the file `coreos-415.ociarchive.x86_64.qcow2` in the
-current working directory that can then be used.
+Which will create the file `my-custom-rhcos-415.ociarchive.x86_64.qcow2` in
+the current working directory that can then be used.
 
 NOTE: you can also pull an image from a registry into a local
 ociarchive file with `skopeo copy docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.
