@@ -48,11 +48,12 @@ And the command to build the container would look like:
 
 ```
 RHCOS_CONTAINER='quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:....'
+PULL_SECRET=/path/to/pull-secret
 podman build \
     --from $RHCOS_CONTAINER \
+    --authfile $PULL_SECRET \
     --file Containerfile    \
-    --tag oci-archive:./my-custom-rhcos-415.ociarchive
-
+    --tag oci-archive:./my-custom-rhcos.ociarchive
 ```
 
 
@@ -72,18 +73,18 @@ mode and some software installed:
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install --enablerepo=updates-testing -y osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs
+sudo dnf install -y osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs
 ```
 
 Now you should be able to generate an image with something like:
 
 ```
-ociarchive=/path/to/my-custom-rhcos-415.ociarchive
+ociarchive=/path/to/my-custom-rhcos.ociarchive
 platform=qemu
 sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
 ```
 
-Which will create the file `my-custom-rhcos-415.ociarchive.x86_64.qcow2` in
+Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
 
-NOTE: you can also pull an image from a registry into a local ociarchive file with `skopeo copy docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.
+NOTE: you can also pull an image from a registry into a local ociarchive file with `skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.

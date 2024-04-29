@@ -48,7 +48,7 @@ main() {
     fi
     # Make sure the given file exists
     if [ ! -f $OCIARCHIVE ]; then
-        echo "need to pass in full path to .ociarchive file"
+        echo "need to pass in the path to .ociarchive file"
         exit 1
     fi
     # Convert it to an absolute path
@@ -71,7 +71,7 @@ main() {
 
     platforms=($PLATFORM)
 
-    # It's mostly cosmetic, but let's set a sane looking Set a sane container-imgref
+    # It's mostly cosmetic, but let's set a sane looking container-imgref
     imgref="ostree-image-signed:oci-archive:/$(basename "${OCIARCHIVE}")"
 
     for platform in "${platforms[@]}"; do
