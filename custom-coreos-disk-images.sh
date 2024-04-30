@@ -7,11 +7,11 @@ set -x -euo pipefail
 #
 # Invocation of the script would look something like this:
 #
-# sudo ./build-custom-rhcos-disks.sh \
-#   /path/to/coreos-415.ociarchive qemu
+# sudo ./custom-coreos-disk-images.sh \
+#   /path/to/coreos.ociarchive qemu
 #
 # And it will create the output file in the current directory:
-#   coreos-415.ociarchive.x86_64.qemu.qcow2
+#   coreos.ociarchive.x86_64.qemu.qcow2
 
 ARCH=$(arch)
 OCIARCHIVE=$1

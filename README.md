@@ -1,4 +1,4 @@
-# build-custom-rhcos-disks
+# custom-coreos-disk-images
 
 This repo contains files and instructions for building customized RHCOS
 (Red Hat CoreOS) disk images that are used for installation and
@@ -90,7 +90,7 @@ Now you should be able to generate an image with something like:
 ```
 ociarchive=/path/to/my-custom-rhcos.ociarchive
 platform=qemu
-sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
+sudo ./custom-coreos-disk-images.sh $ociarchive $platform
 ```
 
 Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
