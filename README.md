@@ -43,6 +43,8 @@ RUN rpm-ostree install https://dl.fedoraproject.org/pub/epel/epel-release-latest
     ostree container commit
 ```
 
+Note that in RHCOS 4.16 and newer, you can also use `dnf install` instead of `rpm-ostree install`.
+
 And the command to build the container would look like:
 
 
@@ -53,15 +55,22 @@ podman build \
     --from $RHCOS_CONTAINER \
     --authfile $PULL_SECRET \
     --file Containerfile    \
-    --tag oci-archive:./my-custom-rhcos.ociarchive
+    quay.io/myorg/myrepo:mytag
 ```
 
-
-Now the layered container OCI archive is in the `my-custom-rhcos.ociarchive` file in the current working directory.
-
+You will want to push this image to a registry so that it can be used as an
+`osImageUrl` in a MachineConfig as documented in the OpenShift docs.
 
 # Creating disk boot images from the container image
 
+First, we need to convert the image to an OCI archive:
+
+```
+# from local storage
+skopeo copy containers-storage:quay.io/myorg/myrepo:mytag oci-archive:my-custom-rhcos.ociarchive
+# from a registry
+skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive
+``
 
 You can now take that ociarchive and create a disk image for a
 platform (i.e. `qemu`, `metal` or `gcp`). First you need an
@@ -86,5 +95,3 @@ sudo ./build-custom-rhcos-disks.sh $ociarchive $platform
 
 Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
-
-NOTE: you can also pull an image from a registry into a local ociarchive file with `skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive`.
