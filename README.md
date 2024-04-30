@@ -55,7 +55,7 @@ podman build \
     --from $RHCOS_CONTAINER \
     --authfile $PULL_SECRET \
     --file Containerfile    \
-    quay.io/myorg/myrepo:mytag
+    --tag quay.io/myorg/myrepo:mytag
 ```
 
 You will want to push this image to a registry so that it can be used as an
