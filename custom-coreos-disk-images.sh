@@ -1,9 +1,9 @@
 #!/usr/bin/bash
 set -x -euo pipefail
 
-# Run this script on a fully up to date Fedora 39 VM with SELinux
+# Run this script on a fully up to date Fedora 40 VM with SELinux
 # in permissive mode and the following tools installed:
-# sudo dnf install --enablerepo=updates-testing -y osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs
+# sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
 #
 # Invocation of the script would look something like this:
 #
@@ -59,12 +59,12 @@ main() {
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
-    gitreporef="74395f97327e0927a82707ca6f59f93b169c4286"
+    gitreporef="3a76784b37fe073718a7f9d9d67441d9d8b34c10"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
     pushd ./tmp
     curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
     chmod +x runvm-osbuild
-    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,hyperv,qemu,gcp}.ipp.yaml; do
+    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,metal,qemu}.ipp.yaml; do
         curl -LO --fail "${gitrepotld}/src/osbuild-manifests/${manifest}"
     done
     popd
@@ -94,6 +94,11 @@ main() {
         esac
         outfile="./$(basename $OCIARCHIVE).${ARCH}.${platform}.${suffix}"
 
+        # - rootfs size is only used on s390x secex so we pass "" here
+        # - extra-kargs from image.yaml/image.json is currently empty
+        #   on RHCOS but we may want to start picking it up from inside
+        #   the container image (/usr/share/coreos-assembler/image.json)
+        #   in the future. https://github.com/openshift/os/blob/master/image.yaml
         cat > tmp/diskvars.json << EOF
 {
 	"osname": "rhcos",
@@ -102,7 +107,9 @@ main() {
 	"image-type": "${platform}",
 	"container-imgref": "${imgref}",
 	"metal-image-size": "3072",
-	"cloud-image-size": "16384"
+	"cloud-image-size": "16384",
+	"rootfs-size": "0",
+	"extra-kargs-string": ""
 }
 EOF
         ./tmp/runvm-osbuild            \
