@@ -66,23 +66,23 @@ You will want to push this image to a registry so that it can be used as an
 First, we need to convert the image to an OCI archive:
 
 ```
-# from local storage
+# to pull from local storage
 skopeo copy containers-storage:quay.io/myorg/myrepo:mytag oci-archive:my-custom-rhcos.ociarchive
-# from a registry
+# OR to pull from a registry
 skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive
 ```
 
 You can now take that ociarchive and create a disk image for a
 platform (i.e. `qemu`, `metal` or `gcp`). First you need an
 environment to run OSBuild in. Right now this needs to be a
-fully up to date Fedora 39 machine with SELinux in permissive
+fully up to date Fedora 40 machine with SELinux in permissive
 mode and some software installed:
 
 ```
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs
+sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
 ```
 
 Now you should be able to generate an image with something like:
