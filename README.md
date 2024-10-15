@@ -82,7 +82,7 @@ mode and some software installed:
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
+sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs python3-dnf
 ```
 
 Now you should be able to generate an image with something like:
