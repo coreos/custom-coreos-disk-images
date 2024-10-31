@@ -8,14 +8,20 @@ set -eux -o pipefail
 # Invocation of the script would look something like this:
 #
 # sudo ./custom-coreos-disk-images.sh \
-#   /path/to/coreos.ociarchive qemu
+#   --ociarchive /path/to/coreos.ociarchive --platforms qemu
 #
 # And it will create the output file in the current directory:
-#   coreos.ociarchive.x86_64.qemu.qcow2
+# - coreos.ociarchive.x86_64.qemu.qcow2
+#
+# Passing multple platforms will yield multiple disk images:
+#
+# sudo ./custom-coreos-disk-images.sh \
+#   --ociarchive /path/to/coreos.ociarchive --platforms qemu,metal
+#
+# - coreos.ociarchive.x86_64.qemu.qcow2
+# - coreos.ociarchive.x86_64.metal.qcow2
 
 ARCH=$(arch)
-OCIARCHIVE=$1
-PLATFORM=$2
 
 check_rpm() {
     req=$1
@@ -33,6 +39,44 @@ check_rpms() {
 }
 
 main() {
+
+    # Call getopt to validate the provided input.
+    options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:' -- "$@")
+    if [ $? -ne 0 ]; then
+        echo "Incorrect options provided"
+        exit 1
+    fi
+    eval set -- "$options"
+    while true; do
+        case "$1" in
+        --imgref)
+            shift # The arg is next in position args
+            IMGREF=$1
+            ;;
+        --ociarchive)
+            shift; # The arg is next in position args
+            OCIARCHIVE=$1
+            ;;
+        --osname)
+            shift # The arg is next in position args
+            OSNAME=$1
+            if [ $OSNAME !~ rhcos|fedora-coreos ]; then
+                echo "--osname must be rhcos or fedora-coreos" >&2
+                exit 1
+            fi
+            ;;
+        --platforms)
+            shift # The arg is next in position args
+            # Split the comma separated string of platforms into an array
+            IFS=, read -ra PLATFORMS <<<"$1"
+            ;;
+        --)
+            shift
+            break
+            ;;
+        esac
+        shift
+    done
 
     # Make sure RPMs are installed
     check_rpms
@@ -54,6 +98,21 @@ main() {
     # Convert it to an absolute path
     OCIARCHIVE=$(readlink -f $OCIARCHIVE)
 
+    # Let's set the imgref. If no --imgref was provided then for cosmetic
+    # purposes let's set a sane looking one.
+    imgref="${IMGREF:-ostree-image-signed:oci-archive:/$(basename "${OCIARCHIVE}")}"
+
+    # Let's default to `rhcos` for the OS Name for backwards compat
+    osname="${OSNAME:-rhcos}"
+
+    # FCOS/RHCOS have different default disk image sizes
+    # In the future should pull this from the container image
+    # (/usr/share/coreos-assembler/image.json)
+    image_size=10240 # FCOS
+    if [ $osname == 'rhcos' ]; then
+        image_size=16384 # RHCOS
+    fi
+
     # Make a local tmpdir
     mkdir -p tmp; rm -f tmp/*
 
@@ -69,12 +128,8 @@ main() {
     done
     popd
 
-    platforms=($PLATFORM)
 
-    # It's mostly cosmetic, but let's set a sane looking container-imgref
-    imgref="ostree-image-signed:oci-archive:/$(basename "${OCIARCHIVE}")"
-
-    for platform in "${platforms[@]}"; do
+    for platform in "${PLATFORMS[@]}"; do
 
         suffix=
         case $platform in 
@@ -101,13 +156,13 @@ main() {
         #   in the future. https://github.com/openshift/os/blob/master/image.yaml
         cat > tmp/diskvars.json << EOF
 {
-	"osname": "rhcos",
+	"osname": "${osname}",
 	"deploy-via-container": "true",
 	"ostree-container": "${OCIARCHIVE}",
 	"image-type": "${platform}",
 	"container-imgref": "${imgref}",
 	"metal-image-size": "3072",
-	"cloud-image-size": "16384",
+	"cloud-image-size": "${image_size}",
 	"rootfs-size": "0",
 	"extra-kargs-string": ""
 }
