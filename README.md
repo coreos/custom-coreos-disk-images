@@ -86,7 +86,7 @@ Now you should be able to generate an image with something like:
 ```
 ociarchive=/path/to/my-custom-rhcos.ociarchive
 platform=qemu
-sudo ./custom-coreos-disk-images.sh $ociarchive $platform
+sudo ./custom-coreos-disk-images.sh --ociarchive $ociarchive --platforms $platform
 ```
 
 Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
