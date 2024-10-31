@@ -4,7 +4,6 @@ This repo contains files and instructions for building customized RHCOS
 (Red Hat CoreOS) disk images that are used for installation and
 bootstrapping of OpenShift Clusters.
 
-
 # Creating a custom RHCOS container Image
 
 Some background context and some examples for creating layered RHCOS
@@ -58,8 +57,7 @@ podman build \
     --tag quay.io/myorg/myrepo:mytag
 ```
 
-You will want to push this image to a registry so that it can be used as an
-`osImageUrl` in a MachineConfig as documented in the OpenShift docs.
+You will want to [push](https://docs.podman.io/en/latest/markdown/podman-push.1.html) this image to a registry so that it can be used as an `osImageUrl` in a MachineConfig as documented in the OpenShift docs.
 
 # Creating disk boot images from the container image
 
