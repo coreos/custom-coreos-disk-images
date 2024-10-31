@@ -133,11 +133,17 @@ main() {
 
         suffix=
         case $platform in 
-            metal)
+            applehv)
                 suffix=raw
                 ;;
             gcp)
                 suffix=tar.gz
+                ;;
+            hyperv)
+                suffix=vhdx
+                ;;
+            metal)
+                suffix=raw
                 ;;
             qemu)
                 suffix=qcow2
