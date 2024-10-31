@@ -75,14 +75,14 @@ skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:lates
 You can now take that ociarchive and create a disk image for a
 platform (i.e. `qemu`, `metal` or `gcp`). First you need an
 environment to run OSBuild in. Right now this needs to be a
-fully up to date Fedora 40 machine with SELinux in permissive
+fully up to date Fedora 41 machine with SELinux in permissive
 mode and some software installed:
 
 ```
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
+sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
 ```
 
 Now you should be able to generate an image with something like:

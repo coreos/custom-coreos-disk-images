@@ -1,9 +1,9 @@
 #!/usr/bin/bash
 set -x -euo pipefail
 
-# Run this script on a fully up to date Fedora 40 VM with SELinux
+# Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
-# sudo dnf install -y --enablerepo=updates-testing osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
+# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
 #
 # Invocation of the script would look something like this:
 #
