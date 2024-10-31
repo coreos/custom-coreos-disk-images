@@ -114,13 +114,13 @@ main() {
     fi
 
     # Make a local tmpdir
-    mkdir -p tmp; rm -f tmp/*
+    tmpdir=$(mktemp -d ./tmp-osbuild-XXX)
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
     gitreporef="3a76784b37fe073718a7f9d9d67441d9d8b34c10"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
-    pushd ./tmp
+    pushd "${tmpdir}"
     curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
     chmod +x runvm-osbuild
     for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,metal,qemu}.ipp.yaml; do
@@ -154,7 +154,7 @@ main() {
         #   on RHCOS but we may want to start picking it up from inside
         #   the container image (/usr/share/coreos-assembler/image.json)
         #   in the future. https://github.com/openshift/os/blob/master/image.yaml
-        cat > tmp/diskvars.json << EOF
+        cat > "${tmpdir}/diskvars.json" << EOF
 {
 	"osname": "${osname}",
 	"deploy-via-container": "true",
@@ -167,14 +167,14 @@ main() {
 	"extra-kargs-string": ""
 }
 EOF
-        ./tmp/runvm-osbuild            \
-            --config tmp/diskvars.json \
-            --filepath "./${outfile}"  \
-            --mpp "tmp/coreos.osbuild.${ARCH}.mpp.yaml"
+        "${tmpdir}/runvm-osbuild"              \
+            --config "${tmpdir}/diskvars.json" \
+            --filepath "./${outfile}"          \
+            --mpp "${tmpdir}/coreos.osbuild.${ARCH}.mpp.yaml"
         echo "Created $platform image file at: ${outfile}"
     done
 
-    rm -f tmp/*; rmdir tmp # Cleanup
+    rm -f "${tmpdir}"/*; rmdir "${tmpdir}" # Cleanup
 }
 
 main "$@"
