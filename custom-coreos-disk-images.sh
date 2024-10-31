@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-set -x -euo pipefail
+set -eux -o pipefail
 
 # Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
@@ -94,7 +94,7 @@ main() {
         esac
         outfile="./$(basename $OCIARCHIVE).${ARCH}.${platform}.${suffix}"
 
-        # - rootfs size is only used on s390x secex so we pass "" here
+        # - rootfs size is only used on s390x secex so we pass "0" here
         # - extra-kargs from image.yaml/image.json is currently empty
         #   on RHCOS but we may want to start picking it up from inside
         #   the container image (/usr/share/coreos-assembler/image.json)
