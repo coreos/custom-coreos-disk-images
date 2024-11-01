@@ -57,8 +57,6 @@ podman build \
     --tag quay.io/myorg/myrepo:mytag
 ```
 
-You will want to [push](https://docs.podman.io/en/latest/markdown/podman-push.1.html) this image to a registry so that it can be used as an `osImageUrl` in a MachineConfig as documented in the OpenShift docs.
-
 # Creating disk boot images from the container image
 
 First, we need to convert the image to an OCI archive:
@@ -93,3 +91,32 @@ sudo ./custom-coreos-disk-images.sh $ociarchive $platform
 
 Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
+
+# Using the container image in the cluster
+
+You will also want to [push](https://docs.podman.io/en/latest/markdown/podman-push.1.html)
+the custom container image to a registry and point OpenShift at it using a
+MachineConfig with the `osImageURL` field set to the image. Otherwise, upon
+booting, the node will immediately be switched to the default OS image for
+the target OpenShift version.
+
+Create a MachineConfig like the following:
+
+```yaml
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker 
+  name: custom-image
+spec:
+  osImageURL: example.com/my/custom-image@sha256... 
+```
+
+If scaling up, you can specify this MachineConfig as usual using `oc apply -f`.
+
+If installing a cluster, you can specify the MachineConfig at that point so
+that it's part of the initial bootstrapping. For examples of this, see the
+documentation at:
+
+https://docs.openshift.com/container-platform/4.17/installing/installing_bare_metal/installing-bare-metal.html#installation-user-infra-generate-k8s-manifest-ignition_installing-bare-metal
