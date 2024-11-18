@@ -18,10 +18,21 @@ set -eux -o pipefail
 # sudo ./custom-coreos-disk-images.sh \
 #   --ociarchive /path/to/coreos.ociarchive --platforms qemu,metal
 #
-# - coreos.ociarchive.x86_64.qemu.qcow2
-# - coreos.ociarchive.x86_64.metal.qcow2
+# - coreos-qemu.x86_64.qcow2
+# - coreos-metal.x86_64.raw
 
 ARCH=$(arch)
+
+# A list of supported platforms and the filename suffix of the main
+# artifact that platform produces.
+declare -A SUPPORTED_PLATFORMS=(
+    ['applehv']='raw.gz'
+    ['gcp']='tar.gz'
+    ['hyperv']='vhdx.zip'
+    ['metal4k']='raw'
+    ['metal']='raw'
+    ['qemu']='qcow2'
+)
 
 check_rpm() {
     req=$1
@@ -32,7 +43,7 @@ check_rpm() {
 }
 
 check_rpms() {
-    reqs=(osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs)
+    reqs=(osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs zip)
     for req in "${reqs[@]}"; do
         check_rpm "$req"
     done
@@ -113,59 +124,36 @@ main() {
         image_size=16384 # RHCOS
     fi
 
-    # Make a local tmpdir
+    # Make a local tmpdir and outidr
     tmpdir=$(mktemp -d ./tmp-osbuild-XXX)
+    outdir="${tmpdir}/out"
+    mkdir $outdir
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
-    gitreporef="3a76784b37fe073718a7f9d9d67441d9d8b34c10"
+    gitreporef="10e397bfd966a60e5e43ec3ad49443c0c9323d74"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
     pushd "${tmpdir}"
     curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
     chmod +x runvm-osbuild
-    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,metal,qemu}.ipp.yaml; do
+    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,metal,qemu,qemu-secex}.ipp.yaml; do
         curl -LO --fail "${gitrepotld}/src/osbuild-manifests/${manifest}"
     done
     popd
 
 
-    for platform in "${PLATFORMS[@]}"; do
-
-        suffix=
-        case $platform in 
-            applehv)
-                suffix=raw
-                ;;
-            gcp)
-                suffix=tar.gz
-                ;;
-            hyperv)
-                suffix=vhdx
-                ;;
-            metal)
-                suffix=raw
-                ;;
-            qemu)
-                suffix=qcow2
-                ;;
-            *)
-                echo "unknown platform provided"
-                exit 1
-                ;;
-        esac
-        outfile="./$(basename $OCIARCHIVE).${ARCH}.${platform}.${suffix}"
-
-        # - rootfs size is only used on s390x secex so we pass "0" here
-        # - extra-kargs from image.yaml/image.json is currently empty
-        #   on RHCOS but we may want to start picking it up from inside
-        #   the container image (/usr/share/coreos-assembler/image.json)
-        #   in the future. https://github.com/openshift/os/blob/master/image.yaml
-        cat > "${tmpdir}/diskvars.json" << EOF
+    # - rootfs size is only used on s390x secex so we pass "0" here
+    # - extra-kargs from image.yaml/image.json is currently empty
+    #   on RHCOS but we may want to start picking it up from inside
+    #   the container image (/usr/share/coreos-assembler/image.json)
+    #   in the future. https://github.com/openshift/os/blob/master/image.yaml
+    runvm_osbuild_config_json="${tmpdir}/runvm-osbuild-config.json"
+    cat > "${runvm_osbuild_config_json}" << EOF
 {
+    "artifact-name-prefix": "$(basename -s .ociarchive $OCIARCHIVE)",
 	"osname": "${osname}",
 	"deploy-via-container": "true",
 	"ostree-container": "${OCIARCHIVE}",
-	"image-type": "${platform}",
 	"container-imgref": "${imgref}",
 	"metal-image-size": "3072",
 	"cloud-image-size": "${image_size}",
@@ -173,14 +161,23 @@ main() {
 	"extra-kargs-string": ""
 }
 EOF
-        "${tmpdir}/runvm-osbuild"              \
-            --config "${tmpdir}/diskvars.json" \
-            --filepath "./${outfile}"          \
-            --mpp "${tmpdir}/coreos.osbuild.${ARCH}.mpp.yaml"
-        echo "Created $platform image file at: ${outfile}"
+    "${tmpdir}/runvm-osbuild"                             \
+        --config "${runvm_osbuild_config_json}"           \
+        --mpp "${tmpdir}/coreos.osbuild.${ARCH}.mpp.yaml" \
+        --outdir "${outdir}"                              \
+        --platforms "$(IFS=,; echo "${PLATFORMS[*]}")"
+
+    for platform in "${PLATFORMS[@]}"; do
+        # Set the filename of the artifact and the local image path
+        # where from the OSBuild out directory where it resides.
+        suffix="${SUPPORTED_PLATFORMS[$platform]}"
+        imgname=$(basename -s .ociarchive $OCIARCHIVE)-${platform}.${ARCH}.${suffix}
+        imgpath="${outdir}/${platform}/${imgname}"
+        mv "${imgpath}" ./
+        echo "Created $platform image file at: ${imgname}"
     done
 
-    rm -f "${tmpdir}"/*; rmdir "${tmpdir}" # Cleanup
+    rm -rf "${outdir}"; rm -f "${tmpdir}"/*; rmdir "${tmpdir}" # Cleanup
 }
 
 main "$@"
