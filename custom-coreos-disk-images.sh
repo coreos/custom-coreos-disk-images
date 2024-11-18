@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-set -eux -o pipefail
+set -euo pipefail
 
 # Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
