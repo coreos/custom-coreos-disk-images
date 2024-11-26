@@ -81,6 +81,10 @@ main() {
             # Split the comma separated string of platforms into an array
             IFS=, read -ra PLATFORMS <<<"$1"
             ;;
+        --metal-size)
+            shift # The arg is next in position args
+	    METAL_SIZE=$1
+            ;;
         --)
             shift
             break
@@ -106,6 +110,11 @@ main() {
         echo "need to pass in the path to .ociarchive file"
         exit 1
     fi
+    # Set default for metal-size if not provided
+    if [[ -z "$METAL_SIZE" ]]; then
+       METAL_SIZE=3072
+    fi
+
     # Convert it to an absolute path
     OCIARCHIVE=$(readlink -f $OCIARCHIVE)
 
@@ -123,6 +132,7 @@ main() {
     if [ $osname == 'rhcos' ]; then
         image_size=16384 # RHCOS
     fi
+
 
     # Make a local tmpdir and outidr
     tmpdir=$(mktemp -d ./tmp-osbuild-XXX)
@@ -155,7 +165,7 @@ main() {
 	"deploy-via-container": "true",
 	"ostree-container": "${OCIARCHIVE}",
 	"container-imgref": "${imgref}",
-	"metal-image-size": "3072",
+	"metal-image-size": "${METAL_SIZE}",
 	"cloud-image-size": "${image_size}",
 	"rootfs-size": "0",
 	"extra-kargs-string": ""
