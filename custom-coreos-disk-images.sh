@@ -52,7 +52,7 @@ check_rpms() {
 main() {
 
     # Call getopt to validate the provided input.
-    options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:' -- "$@")
+    options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:,metal-image-size:,cloud-image-size:' -- "$@")
     if [ $? -ne 0 ]; then
         echo "Incorrect options provided"
         exit 1
@@ -60,9 +60,17 @@ main() {
     eval set -- "$options"
     while true; do
         case "$1" in
+        --cloud-image-size)
+            shift # The arg is next in position args
+            cloud_image_size=$1
+            ;;
         --imgref)
             shift # The arg is next in position args
             imgref=$1
+            ;;
+        --metal-image-size)
+            shift # The arg is next in position args
+            metal_image_size=$1
             ;;
         --ociarchive)
             shift # The arg is next in position args
@@ -119,10 +127,15 @@ main() {
     # FCOS/RHCOS have different default disk image sizes
     # In the future should pull this from the container image
     # (/usr/share/coreos-assembler/image.json)
-    image_size=10240 # FCOS
-    if [ $osname == 'rhcos' ]; then
-        image_size=16384 # RHCOS
+    if [ -z "${cloud_image_size:-}" ]; then
+        cloud_image_size=10240 # FCOS
+        if [ $osname == 'rhcos' ]; then
+            cloud_image_size=16384 # RHCOS
+        fi
     fi
+
+    # Default Metal Image Size
+    metal_image_size="${metal_image_size:-3072}"
 
     # Make a local tmpdir and outidr
     tmpdir=$(mktemp -d ./tmp-osbuild-XXX)
@@ -155,8 +168,8 @@ main() {
 	"deploy-via-container": "true",
 	"ostree-container": "${ociarchive}",
 	"container-imgref": "${imgref}",
-	"metal-image-size": "3072",
-	"cloud-image-size": "${image_size}",
+	"metal-image-size": "${metal_image_size}",
+	"cloud-image-size": "${cloud_image_size}",
 	"rootfs-size": "0",
 	"extra-kargs-string": ""
 }
