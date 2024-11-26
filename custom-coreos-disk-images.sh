@@ -62,16 +62,16 @@ main() {
         case "$1" in
         --imgref)
             shift # The arg is next in position args
-            IMGREF=$1
+            imgref=$1
             ;;
         --ociarchive)
-            shift; # The arg is next in position args
-            OCIARCHIVE=$1
+            shift # The arg is next in position args
+            ociarchive=$1
             ;;
         --osname)
             shift # The arg is next in position args
-            OSNAME=$1
-            if [ $OSNAME !~ rhcos|fedora-coreos ]; then
+            osname=$1
+            if [ $osname !~ rhcos|fedora-coreos ]; then
                 echo "--osname must be rhcos or fedora-coreos" >&2
                 exit 1
             fi
@@ -79,7 +79,7 @@ main() {
         --platforms)
             shift # The arg is next in position args
             # Split the comma separated string of platforms into an array
-            IFS=, read -ra PLATFORMS <<<"$1"
+            IFS=, read -ra platforms <<<"$1"
             ;;
         --)
             shift
@@ -102,19 +102,19 @@ main() {
         exit 1
     fi
     # Make sure the given file exists
-    if [ ! -f $OCIARCHIVE ]; then
+    if [ ! -f $ociarchive ]; then
         echo "need to pass in the path to .ociarchive file"
         exit 1
     fi
     # Convert it to an absolute path
-    OCIARCHIVE=$(readlink -f $OCIARCHIVE)
+    ociarchive=$(readlink -f $ociarchive)
 
     # Let's set the imgref. If no --imgref was provided then for cosmetic
     # purposes let's set a sane looking one.
-    imgref="${IMGREF:-ostree-image-signed:oci-archive:/$(basename "${OCIARCHIVE}")}"
+    imgref="${imgref:-ostree-image-signed:oci-archive:/$(basename "${ociarchive}")}"
 
     # Let's default to `rhcos` for the OS Name for backwards compat
-    osname="${OSNAME:-rhcos}"
+    osname="${osname:-rhcos}"
 
     # FCOS/RHCOS have different default disk image sizes
     # In the future should pull this from the container image
@@ -150,10 +150,10 @@ main() {
     runvm_osbuild_config_json="${tmpdir}/runvm-osbuild-config.json"
     cat > "${runvm_osbuild_config_json}" << EOF
 {
-    "artifact-name-prefix": "$(basename -s .ociarchive $OCIARCHIVE)",
+    "artifact-name-prefix": "$(basename -s .ociarchive $ociarchive)",
 	"osname": "${osname}",
 	"deploy-via-container": "true",
-	"ostree-container": "${OCIARCHIVE}",
+	"ostree-container": "${ociarchive}",
 	"container-imgref": "${imgref}",
 	"metal-image-size": "3072",
 	"cloud-image-size": "${image_size}",
@@ -165,13 +165,13 @@ EOF
         --config "${runvm_osbuild_config_json}"           \
         --mpp "${tmpdir}/coreos.osbuild.${ARCH}.mpp.yaml" \
         --outdir "${outdir}"                              \
-        --platforms "$(IFS=,; echo "${PLATFORMS[*]}")"
+        --platforms "$(IFS=,; echo "${platforms[*]}")"
 
-    for platform in "${PLATFORMS[@]}"; do
+    for platform in "${platforms[@]}"; do
         # Set the filename of the artifact and the local image path
         # where from the OSBuild out directory where it resides.
         suffix="${SUPPORTED_PLATFORMS[$platform]}"
-        imgname=$(basename -s .ociarchive $OCIARCHIVE)-${platform}.${ARCH}.${suffix}
+        imgname=$(basename -s .ociarchive $ociarchive)-${platform}.${ARCH}.${suffix}
         imgpath="${outdir}/${platform}/${imgname}"
         mv "${imgpath}" ./
         echo "Created $platform image file at: ${imgname}"
