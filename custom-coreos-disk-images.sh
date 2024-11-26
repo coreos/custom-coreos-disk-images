@@ -79,7 +79,7 @@ main() {
         --osname)
             shift # The arg is next in position args
             osname=$1
-            if [ $osname !~ rhcos|fedora-coreos ]; then
+            if [ "$osname" != rhcos ] && [ "$osname" != fedora-coreos ]; then
                 echo "--osname must be rhcos or fedora-coreos" >&2
                 exit 1
             fi
