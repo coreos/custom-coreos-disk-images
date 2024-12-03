@@ -52,7 +52,7 @@ check_rpms() {
 main() {
 
     # Call getopt to validate the provided input.
-    options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:,metal-image-size:,cloud-image-size:' -- "$@")
+    options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:,metal-image-size:,cloud-image-size:,extra-kargs:' -- "$@")
     if [ $? -ne 0 ]; then
         echo "Incorrect options provided"
         exit 1
@@ -63,6 +63,10 @@ main() {
         --cloud-image-size)
             shift # The arg is next in position args
             cloud_image_size=$1
+            ;;
+        --extra-kargs)
+            shift # The arg is next in position args
+            extra_kargs="$1"
             ;;
         --imgref)
             shift # The arg is next in position args
@@ -137,7 +141,15 @@ main() {
     # Default Metal Image Size
     metal_image_size="${metal_image_size:-3072}"
 
-    # Make a local tmpdir and outidr
+    # Default kernel arguments are different for FCOS/RHCOS
+    if [ -z "${extra_kargs:-}" ]; then
+        extra_kargs="" # RHCOS
+        if [ "$osname" == 'fedora-coreos' ]; then
+            extra_kargs="mitigations=auto,nosmt" # FCOS
+        fi
+    fi
+
+    # Make a local tmpdir and outdir
     tmpdir=$(mktemp -d ./tmp-osbuild-XXX)
     outdir="${tmpdir}/out"
     mkdir $outdir
@@ -171,7 +183,7 @@ main() {
 	"metal-image-size": "${metal_image_size}",
 	"cloud-image-size": "${cloud_image_size}",
 	"rootfs-size": "0",
-	"extra-kargs-string": ""
+	"extra-kargs-string": "${extra_kargs}"
 }
 EOF
     "${tmpdir}/runvm-osbuild"                             \
