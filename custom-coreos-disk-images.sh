@@ -26,9 +26,9 @@ ARCH=$(arch)
 # A list of supported platforms and the filename suffix of the main
 # artifact that platform produces.
 declare -A SUPPORTED_PLATFORMS=(
-    ['applehv']='raw.gz'
+    ['applehv']='raw'
     ['gcp']='tar.gz'
-    ['hyperv']='vhdx.zip'
+    ['hyperv']='vhdx'
     ['metal4k']='raw'
     ['metal']='raw'
     ['qemu']='qcow2'
@@ -43,7 +43,7 @@ check_rpm() {
 }
 
 check_rpms() {
-    reqs=(osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs zip)
+    reqs=(osbuild osbuild-tools osbuild-ostree jq xfsprogs e2fsprogs)
     for req in "${reqs[@]}"; do
         check_rpm "$req"
     done
@@ -156,14 +156,21 @@ main() {
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
-    gitreporef="10e397bfd966a60e5e43ec3ad49443c0c9323d74"
+    gitreporef="a13cf77d37aa4c57922e83f3706630ae7e33ac4e"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
     pushd "${tmpdir}"
     curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
     chmod +x runvm-osbuild
-    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,metal,qemu,qemu-secex}.ipp.yaml; do
+    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,live,metal,qemu,qemu-secex}.ipp.yaml; do
         curl -LO --fail "${gitrepotld}/src/osbuild-manifests/${manifest}"
     done
+    # Temporarily chop off the last two lines from "coreos.osbuild.${ARCH}.mpp.yaml"
+    # that performs inclusion of the `live` platform added in [1]. The stages
+    # haven't been merged upstream yet and won't be in the installed OSBuild
+    # RPMs yet.
+    # [1] https://github.com/coreos/coreos-assembler/pull/3976
+    mv "coreos.osbuild.${ARCH}.mpp.yaml"{,.orig}
+    head -n -2 "coreos.osbuild.${ARCH}.mpp.yaml.orig" > "coreos.osbuild.${ARCH}.mpp.yaml"
     popd
 
 

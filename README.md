@@ -78,7 +78,7 @@ mode and some software installed:
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs zip
+sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
 ```
 
 Now you should be able to generate an image with something like:
