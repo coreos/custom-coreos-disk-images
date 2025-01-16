@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
-# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
+# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq \
+#     xfsprogs e2fsprogs dosfstools genisoimage squashfs-tools syslinux-nonlinux
 #
 # Invocation of the script would look something like this:
 #
@@ -32,6 +33,7 @@ declare -A SUPPORTED_PLATFORMS=(
     ['metal4k']='raw'
     ['metal']='raw'
     ['qemu']='qcow2'
+    ['live']='iso'
 )
 
 check_rpm() {
@@ -156,7 +158,7 @@ main() {
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
-    gitreporef="a13cf77d37aa4c57922e83f3706630ae7e33ac4e"
+    gitreporef="7a9b9a87bc8fa73402800d261b1727db12d3839c"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
     pushd "${tmpdir}"
     curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
@@ -164,15 +166,7 @@ main() {
     for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,live,metal,qemu,qemu-secex}.ipp.yaml; do
         curl -LO --fail "${gitrepotld}/src/osbuild-manifests/${manifest}"
     done
-    # Temporarily chop off the last two lines from "coreos.osbuild.${ARCH}.mpp.yaml"
-    # that performs inclusion of the `live` platform added in [1]. The stages
-    # haven't been merged upstream yet and won't be in the installed OSBuild
-    # RPMs yet.
-    # [1] https://github.com/coreos/coreos-assembler/pull/3976
-    mv "coreos.osbuild.${ARCH}.mpp.yaml"{,.orig}
-    head -n -2 "coreos.osbuild.${ARCH}.mpp.yaml.orig" > "coreos.osbuild.${ARCH}.mpp.yaml"
     popd
-
 
     # - rootfs size is only used on s390x secex so we pass "0" here
     # - extra-kargs from image.yaml/image.json is currently empty
@@ -205,8 +199,25 @@ EOF
         suffix="${SUPPORTED_PLATFORMS[$platform]}"
         imgname=$(basename -s .ociarchive $ociarchive)-${platform}.${ARCH}.${suffix}
         imgpath="${outdir}/${platform}/${imgname}"
-        mv "${imgpath}" ./
-        echo "Created $platform image file at: ${imgname}"
+
+        # Perform postprocessing
+        case "$platform" in
+            live)
+                # For live we have more artifacts
+                artifact_types=("iso.${ARCH}.${suffix}" "kernel.${ARCH}" "rootfs.${ARCH}.img" "initramfs.${ARCH}.img")
+                for i in "${!artifact_types[@]}"; do
+                    artifact_type="${artifact_types[$i]}"
+                    artifact_name="$(basename -s .ociarchive $ociarchive)-${platform}-${artifact_type}"
+                    imgpath="${outdir}/${platform}/${artifact_name}"
+                    mv "${imgpath}" ./
+                    echo "Created $platform image file at: ${artifact_name}"
+                done
+                ;;
+            *)
+                mv "${imgpath}" ./
+                echo "Created $platform image file at: ${imgname}"
+                ;;
+        esac
     done
 
     rm -rf "${outdir}"; rm -f "${tmpdir}"/*; rmdir "${tmpdir}" # Cleanup

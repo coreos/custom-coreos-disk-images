@@ -78,7 +78,8 @@ mode and some software installed:
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs e2fsprogs
+sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq \
+    xfsprogs e2fsprogs dosfstools genisoimage squashfs-tools syslinux-nonlinux
 ```
 
 Now you should be able to generate an image with something like:
@@ -91,6 +92,21 @@ sudo ./custom-coreos-disk-images.sh --ociarchive $ociarchive --platforms $platfo
 
 Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
+
+Another example, this time generating live artifacts (ISO/PXE):
+
+```
+ociarchive=/path/to/my-custom-rhcos.ociarchive
+platform=live
+sudo ./custom-coreos-disk-images.sh --ociarchive $ociarchive --platforms $platform
+```
+
+Will create the following files:
+
+- `my-custom-rhcos-live-initramfs.x86_64.img`
+- `my-custom-rhcos-live-iso.x86_64.iso`
+- `my-custom-rhcos-live-kernel.x86_64`
+- `my-custom-rhcos-live-rootfs.x86_64.img`
 
 # Using the container image in the cluster
 
