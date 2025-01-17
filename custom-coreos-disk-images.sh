@@ -141,7 +141,7 @@ main() {
     fi
 
     # Default Metal Image Size
-    metal_image_size="${metal_image_size:-3072}"
+    metal_image_size="${metal_image_size:-4096}"
 
     # Default kernel arguments are different for FCOS/RHCOS
     if [ -z "${extra_kargs:-}" ]; then
