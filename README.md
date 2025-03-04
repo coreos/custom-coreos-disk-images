@@ -1,8 +1,9 @@
 # custom-coreos-disk-images
 
-This repo contains files and instructions for building customized RHCOS
-(Red Hat CoreOS) disk images that are used for installation and
-bootstrapping of OpenShift Clusters.
+This repo contains files and instructions for building customized
+FCOS (Fedora CoreOS) and RHCOS (Red Hat Enterprise Linux CoreOS)
+disk images. In the case of RHCOS these images can then be used for
+installation and bootstrapping of OpenShift Clusters.
 
 # Creating a custom RHCOS container Image
 
@@ -57,15 +58,35 @@ podman build \
     --tag quay.io/myorg/myrepo:mytag
 ```
 
+# Creating a custom FCOS container Image
+
+The process is similar to the above except it should be much simpler.
+With a Containerfile like:
+
+```
+FROM scratch
+RUN dnf install -y podman-tui && \
+    dnf clean all && \
+    ostree container commit
+```
+
+```
+FCOS_CONTAINER='quay.io/fedora/fedora-coreos:stable'
+podman build \
+    --from $FCOS_CONTAINER \
+    --file Containerfile    \
+    --tag quay.io/myorg/myrepo:mytag
+```
+
 # Creating disk boot images from the container image
 
 First, we need to convert the image to an OCI archive:
 
 ```
 # to pull from local storage
-skopeo copy containers-storage:quay.io/myorg/myrepo:mytag oci-archive:my-custom-rhcos.ociarchive
+skopeo copy containers-storage:quay.io/myorg/myrepo:mytag oci-archive:my-custom-coreos.ociarchive
 # OR to pull from a registry
-skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-rhcos.ociarchive
+skopeo copy --authfile /path/to/pull-secret docker://registry.com/org/repo:latest oci-archive:./my-custom-coreos.ociarchive
 ```
 
 You can now take that ociarchive and create a disk image for a
@@ -78,37 +99,39 @@ mode and some software installed:
 sudo dnf update -y
 sudo setenforce 0
 sudo sed -i -e 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
-sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq \
-    xfsprogs e2fsprogs dosfstools genisoimage squashfs-tools syslinux-nonlinux
+sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs \
+         e2fsprogs dosfstools genisoimage squashfs-tools erofs-utils syslinux-nonlinux 
 ```
 
 Now you should be able to generate an image with something like:
 
 ```
-ociarchive=/path/to/my-custom-rhcos.ociarchive
+ociarchive=/path/to/my-custom-coreos.ociarchive
 platform=qemu
 sudo ./custom-coreos-disk-images.sh --ociarchive $ociarchive --platforms $platform
 ```
 
-Which will create the file `my-custom-rhcos.ociarchive.x86_64.qcow2` in
+NOTE: If building a Fedora CoreOS image add the `--osname=fedora-coreos` argument to the above command.
+
+Which will create the file `my-custom-coreos.ociarchive.x86_64.qcow2` in
 the current working directory that can then be used.
 
 Another example, this time generating live artifacts (ISO/PXE):
 
 ```
-ociarchive=/path/to/my-custom-rhcos.ociarchive
+ociarchive=/path/to/my-custom-coreos.ociarchive
 platform=live
 sudo ./custom-coreos-disk-images.sh --ociarchive $ociarchive --platforms $platform
 ```
 
 Will create the following files:
 
-- `my-custom-rhcos-live-initramfs.x86_64.img`
-- `my-custom-rhcos-live-iso.x86_64.iso`
-- `my-custom-rhcos-live-kernel.x86_64`
-- `my-custom-rhcos-live-rootfs.x86_64.img`
+- `my-custom-coreos-live-initramfs.x86_64.img`
+- `my-custom-coreos-live-iso.x86_64.iso`
+- `my-custom-coreos-live-kernel.x86_64`
+- `my-custom-coreos-live-rootfs.x86_64.img`
 
-# Using the container image in the cluster
+# Using the container image in an OpenShift cluster
 
 You will also want to [push](https://docs.podman.io/en/latest/markdown/podman-push.1.html)
 the custom container image to a registry and point OpenShift at it using a
