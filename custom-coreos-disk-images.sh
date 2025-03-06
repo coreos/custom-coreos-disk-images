@@ -207,14 +207,14 @@ main() {
     cat > "${runvm_osbuild_config_json}" << EOF
 {
     "artifact-name-prefix": "$(basename -s .ociarchive $ociarchive)",
-	"osname": "${osname}",
-	"deploy-via-container": "true",
-	"ostree-container": "${ociarchive}",
-	"container-imgref": "${imgref}",
-	"metal-image-size": "${metal_image_size}",
-	"cloud-image-size": "${cloud_image_size}",
-	"rootfs-size": "0",
-	"extra-kargs-string": "${extra_kargs}"
+    "osname": "${osname}",
+    "deploy-via-container": "true",
+    "ostree-container": "${ociarchive}",
+    "container-imgref": "${imgref}",
+    "metal-image-size": "${metal_image_size}",
+    "cloud-image-size": "${cloud_image_size}",
+    "rootfs-size": "0",
+    "extra-kargs-string": "${extra_kargs}"
 }
 EOF
     "${tmpdir}/runvm-osbuild"                             \
