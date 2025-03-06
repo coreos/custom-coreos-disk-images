@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
-# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq \
-#     xfsprogs e2fsprogs dosfstools genisoimage squashfs-tools syslinux-nonlinux
+# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs \
+#   e2fsprogs dosfstools genisoimage squashfs-tools erofs-utils syslinux-nonlinux
 #
 # Invocation of the script would look something like this:
 #
