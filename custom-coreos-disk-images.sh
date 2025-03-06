@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Run this script on a fully up to date Fedora 41 VM with SELinux
 # in permissive mode and the following tools installed:
-# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq \
-#     xfsprogs e2fsprogs dosfstools genisoimage squashfs-tools syslinux-nonlinux
+# sudo dnf install -y osbuild osbuild-tools osbuild-ostree podman jq xfsprogs \
+#   e2fsprogs dosfstools genisoimage squashfs-tools erofs-utils syslinux-nonlinux
 #
 # Invocation of the script would look something like this:
 #
@@ -27,12 +27,25 @@ ARCH=$(arch)
 # A list of supported platforms and the filename suffix of the main
 # artifact that platform produces.
 declare -A SUPPORTED_PLATFORMS=(
+    ['aliyun']='qcow2'
     ['applehv']='raw'
+    ['aws']='vmdk'
+    ['azure']='vhd'
+    ['azurestack']='vhd'
+    ['digitalocean']='qcow2'
+    ['exoscale']='qcow2'
     ['gcp']='tar.gz'
+    ['hetzner']='raw'
     ['hyperv']='vhdx'
+    ['ibmcloud']='qcow2'
+    ['kubevirt']='ociarchive'
     ['metal4k']='raw'
     ['metal']='raw'
+    ['nutanix']='qcow2'
+    ['openstack']='qcow2'
     ['qemu']='qcow2'
+    ['qemu-secex']='qcow2'
+    ['vultr']='raw'
     ['live']='iso'
 )
 
@@ -51,8 +64,24 @@ check_rpms() {
     done
 }
 
-main() {
+get_platform_filenames() {
+    for platform_name in ${!SUPPORTED_PLATFORMS[@]}; do
+        # metal4k is defined in platform.metal.ipp.yaml so we won't
+        # output a filename when the platform is metal4k.
+        if [ "$platform_name" != 'metal4k' ]; then
+            echo "platform.${platform_name}.ipp.yaml"
+        fi
+    done
+}
 
+get_url() {
+    if ! curl -LO --no-progress-meter --fail $1; then
+        echo "Failed to download $1" >&2
+        false
+    fi
+}
+
+main() {
     # Call getopt to validate the provided input.
     options=$(getopt --options - --longoptions 'imgref:,ociarchive:,osname:,platforms:,metal-image-size:,cloud-image-size:,extra-kargs:' -- "$@")
     if [ $? -ne 0 ]; then
@@ -158,13 +187,14 @@ main() {
 
     # Freeze on specific version for now to increase stability.
     #gitreporef="main"
-    gitreporef="7a9b9a87bc8fa73402800d261b1727db12d3839c"
+    gitreporef="60d468e70172345d807886f1e3685b74803c370f"
     gitrepotld="https://raw.githubusercontent.com/coreos/coreos-assembler/${gitreporef}/"
     pushd "${tmpdir}"
-    curl -LO --fail "${gitrepotld}/src/runvm-osbuild"
+    platform_filenames=$(get_platform_filenames)
+    get_url "${gitrepotld}/src/runvm-osbuild"
     chmod +x runvm-osbuild
-    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" platform.{applehv,gcp,hyperv,live,metal,qemu,qemu-secex}.ipp.yaml; do
-        curl -LO --fail "${gitrepotld}/src/osbuild-manifests/${manifest}"
+    for manifest in "coreos.osbuild.${ARCH}.mpp.yaml" $platform_filenames; do
+        get_url "${gitrepotld}/src/osbuild-manifests/${manifest}"
     done
     popd
 
@@ -177,14 +207,14 @@ main() {
     cat > "${runvm_osbuild_config_json}" << EOF
 {
     "artifact-name-prefix": "$(basename -s .ociarchive $ociarchive)",
-	"osname": "${osname}",
-	"deploy-via-container": "true",
-	"ostree-container": "${ociarchive}",
-	"container-imgref": "${imgref}",
-	"metal-image-size": "${metal_image_size}",
-	"cloud-image-size": "${cloud_image_size}",
-	"rootfs-size": "0",
-	"extra-kargs-string": "${extra_kargs}"
+    "osname": "${osname}",
+    "deploy-via-container": "true",
+    "ostree-container": "${ociarchive}",
+    "container-imgref": "${imgref}",
+    "metal-image-size": "${metal_image_size}",
+    "cloud-image-size": "${cloud_image_size}",
+    "rootfs-size": "0",
+    "extra-kargs-string": "${extra_kargs}"
 }
 EOF
     "${tmpdir}/runvm-osbuild"                             \
