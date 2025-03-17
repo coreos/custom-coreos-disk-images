@@ -24,13 +24,13 @@ container on you can get that from your cluster like:
 oc adm release info --image-for rhel-coreos
 ```
 
-or from quay using a pull secret like:
+or from quay specifying the version like:
 
 ```
-oc adm release info --registry-config /path/to/pull-secret --image-for=rhel-coreos quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64
+oc adm release info --image-for=rhel-coreos quay.io/openshift-release-dev/ocp-release:4.18.2-x86_64
 ```
 
-where you can replace `4.15.1` with the version of OpenShift you are currently targeting.
+where you can replace `4.18.2` with the version of OpenShift you are currently targeting.
 
 Now you can do a container build. Here is an example `Containerfile`
 that layers a single package from EPEL:
