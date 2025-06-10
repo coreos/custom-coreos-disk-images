@@ -139,9 +139,9 @@ main() {
 
     # Make sure RPMs are installed
     check_rpms
-    # Make sure SELinux is permissive
-    if [ "$(getenforce)" != "Permissive" ]; then
-        echo "SELinux needs to be set to permissive mode"
+    # Make sure SELinux is not enforcing
+    if [ "$(getenforce)" == "Enforcing" ]; then
+        echo "SELinux needs to be set to either permissive or disabled"
         exit 1
     fi
     # Make sure we are effectively `root`
