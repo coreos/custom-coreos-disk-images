@@ -139,9 +139,10 @@ main() {
 
     # Make sure RPMs are installed
     check_rpms
-    # Make sure SELinux is permissive
-    if [ "$(getenforce)" != "Permissive" ]; then
-        echo "SELinux needs to be set to permissive mode"
+    # Make sure SELinux is permissive or disabled
+    selinux_state="$(getenforce)"
+    if [ "$selinux_state" != "Permissive" ] && [ "$selinux_state" != "Disabled" ]; then
+        echo "SELinux needs to be set to permissive or disabled mode"
         exit 1
     fi
     # Make sure we are effectively `root`
